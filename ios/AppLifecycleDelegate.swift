@@ -21,7 +21,7 @@ public class ApplePayDelegate: NSObject, TPDApplePayDelegate {
     let APPLE_PAY_SUCCESS_EVENT_NAME = "onApplePaySuccess"
     let APPLE_PAY_RECEIVE_PRIME_EVENT_NAME = "onReceivePrime"
     let APPLE_PAY_FAILED_EVENT_NAME = "onApplePayFailed"
-    let APPLE_PAY_FINISH_EVENT_NANE = "onApplePayFinished"
+    let APPLE_PAY_FINISH_EVENT_NAME = "onApplePayFinished"
     
     let callbackFunction: (_ name: String, _ body: [String: Any?]) -> Void
     
@@ -57,7 +57,7 @@ public class ApplePayDelegate: NSObject, TPDApplePayDelegate {
     
     public func tpdApplePay(_ applePay: TPDApplePay!, didFailurePayment result: TPDTransactionResult!) {
         callbackFunction(APPLE_PAY_FAILED_EVENT_NAME, [
-            "stautus": result.status,
+            "status": result.status,
             "amount": result.amount,
             "message": result.message,
             "description": result.description
@@ -79,7 +79,7 @@ public class ApplePayDelegate: NSObject, TPDApplePayDelegate {
     }
     
     public func tpdApplePayDidFinishPayment(_ applePay: TPDApplePay!) {
-        callbackFunction(APPLE_PAY_FINISH_EVENT_NANE, [
+        callbackFunction(APPLE_PAY_FINISH_EVENT_NAME, [
             "status": 0,
             "message": "APPLE_PAY_FINISH"
         ])

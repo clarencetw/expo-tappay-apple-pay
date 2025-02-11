@@ -1,97 +1,87 @@
 import ExpoModulesCore
 import TPDirect
+import PassKit
 
-let APPLE_PAY_START_EVENT_NAME = "onApplePayStart"
-let APPLE_PAY_CANCEL_EVENT_NAME = "onApplePayCancel"
-let APPLE_PAY_SUCCESS_EVENT_NAME = "onApplePaySuccess"
-let APPLE_PAY_RECEIVE_PRIME_EVENT_NAME = "onReceivePrime"
-let APPLE_PAY_FAILED_EVENT_NAME = "onApplePayFailed"
-let APPLE_PAY_FINISH_EVENT_NANE = "onApplePayFinished"
-
-public class ExpoTappayApplePayModule: Module  {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
-  public func definition() -> ModuleDefinition {
-    Name("ExpoTappayApplePay")
-      
-    Events(APPLE_PAY_START_EVENT_NAME)
-    Events(APPLE_PAY_CANCEL_EVENT_NAME)
-    Events(APPLE_PAY_SUCCESS_EVENT_NAME)
-    Events(APPLE_PAY_RECEIVE_PRIME_EVENT_NAME)
-    Events(APPLE_PAY_FAILED_EVENT_NAME)
-    Events(APPLE_PAY_FINISH_EVENT_NANE)
+public class ExpoTappayApplePayModule: Module {
+    private let APPLE_PAY_START_EVENT_NAME = "onApplePayStart"
+    private let APPLE_PAY_CANCEL_EVENT_NAME = "onApplePayCancel"
+    private let APPLE_PAY_SUCCESS_EVENT_NAME = "onApplePaySuccess"
+    private let APPLE_PAY_RECEIVE_PRIME_EVENT_NAME = "onReceivePrime"
+    private let APPLE_PAY_FAILED_EVENT_NAME = "onApplePayFailed"
+    private let APPLE_PAY_FINISH_EVENT_NAME = "onApplePayFinished"
+    
+    private var applePay: TPDApplePay!
+    private let merchant: TPDMerchant = TPDMerchant()
+    private let consumer: TPDConsumer = TPDConsumer()
+    private var cart: TPDCart = TPDCart()
+    private var applePayDelegate: ApplePayDelegate!
+    
+    public func definition() -> ModuleDefinition {
+        Name("ExpoTappayApplePay")
         
-    var applePay: TPDApplePay!
-    let merchant: TPDMerchant = TPDMerchant()
-    let consumer: TPDConsumer = TPDConsumer()
-    var cart: TPDCart = TPDCart()
-    let networks = (Bundle.main.object(forInfoDictionaryKey: "TPDApplePayPaymentNetworks") as? [String] ?? ["Visa", "MasterCard", "JCB"]).map { PKPaymentNetwork(rawValue: $0) }
-      
-    // TODO: isApplePayAvailable to check canMakePayments
-    Function("isApplePayAvailable") { () -> Bool in
-        return TPDApplePay.canMakePayments()
-    }
-      
-    // TODO: Setup Merchant in Payment
-    Function("setupMerchant") { (name: String, merchantCapability: String, merchantId: String, countryCode: String, currencyCode: String) in
-        merchant.merchantName = name
+        Events(APPLE_PAY_START_EVENT_NAME)
+        Events(APPLE_PAY_CANCEL_EVENT_NAME)
+        Events(APPLE_PAY_SUCCESS_EVENT_NAME)
+        Events(APPLE_PAY_RECEIVE_PRIME_EVENT_NAME)
+        Events(APPLE_PAY_FAILED_EVENT_NAME)
+        Events(APPLE_PAY_FINISH_EVENT_NAME)
         
-        // Merchant Capacility
-        switch merchantCapability {
-        case "debit":
-            merchant.merchantCapability = .debit
-        case "credit":
-            merchant.merchantCapability = .credit
-        case "emv":
-            merchant.merchantCapability = .emv
-        default:
-            merchant.merchantCapability = .threeDSecure
+        Function("isApplePayAvailable") { () -> Bool in
+            return TPDApplePay.canMakePayments()
         }
         
-        // Merchant Identifier
-        merchant.applePayMerchantIdentifier = merchantId
-        
-        // Country Code & Currency Code
-        merchant.countryCode = countryCode
-        merchant.currencyCode = currencyCode
-        
-        // Merchant Support Networks
-        merchant.supportedNetworks = networks
-    }
-      
-    // TODO: Clear Apple Pay Cart
-    Function("clearCart") {
-        cart = TPDCart()
-    }
-      
-    // TODO: Add Items to Cart
-    Function("addToCart") { (name: String, amount: Int) in
-        let amountValue = NSDecimalNumber(value: amount)
-        cart.add(TPDPaymentItem(itemName: name, withAmount: amountValue))
-    }
-      
-    // TODO: Start Apple Pay Payment
-    AsyncFunction("startPayment") { (promise: Promise) in
-      // TODO: Prepare Payment
-        let applePayDelegate = ApplePayDelegate() { (name: String, body: [String: Any?]) -> Void in
-            debugPrint(name)
-            self.sendEvent(name, body)
+        AsyncFunction("setupMerchant") { (name: String, merchantCapability: String, merchantId: String, countryCode: String, currencyCode: String, promise: Promise) in
+            merchant.merchantName = name
+            switch merchantCapability {
+            case "debit":
+                merchant.merchantCapability = .debit
+            case "credit":
+                merchant.merchantCapability = .credit
+            case "emv":
+                merchant.merchantCapability = .emv
+            default:
+                merchant.merchantCapability = .capability3DS
+            }
+            merchant.applePayMerchantIdentifier = merchantId
+            merchant.countryCode = countryCode
+            merchant.currencyCode = currencyCode
+            merchant.supportedNetworks = [.amex, .masterCard, .visa, .JCB]
+            promise.resolve(nil)
         }
-      applePay = TPDApplePay.setupWthMerchant(merchant, with: consumer, with: cart, withDelegate: applePayDelegate)
         
-      // TODO: Start Payment
-      applePay.startPayment()
+        AsyncFunction("clearCart") { (promise: Promise) in
+            cart = TPDCart()
+            promise.resolve(nil)
+        }
+        
+        AsyncFunction("addToCart") { (name: String, amount: Int, promise: Promise) in
+            let amountValue = NSDecimalNumber(value: amount)
+            cart.add(TPDPaymentItem(itemName: name, withAmount: amountValue))
+            promise.resolve(nil)
+        }
+        
+        AsyncFunction("startPayment") { (promise: Promise) in
+            self.applePayDelegate = ApplePayDelegate { [weak self] (name, body) in
+                self?.sendEvent(name, body)
+            }
+            
+            applePay = TPDApplePay.setupWthMerchant(merchant, with: consumer, with: cart, withDelegate: applePayDelegate)
+            applePay.startPayment()
+            promise.resolve(nil)
+        }
+        
+        Function("showSetup") {
+            TPDApplePay.showSetupView()
+        }
+        
+        Function("showResult") { (isSuccess: Bool) in
+            guard let applePay = self.applePay else { return }
+            applePay.showPaymentResult(isSuccess)
+        }
     }
-      
-    // TODO: Show Setup View
-    Function("showSetup") {
-      TPDApplePay.showSetupView()
+    
+    deinit {
+        applePayDelegate = nil
+        applePay = nil
     }
-      
-    // TODO: Show Payment Result
-    Function("showResult") { (isSuccess: Bool) in
-      applePay.showPaymentResult(isSuccess)
-    }
-  }
 }

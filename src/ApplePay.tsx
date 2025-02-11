@@ -9,10 +9,14 @@ import ExpoTappayApplePay from "./ExpoApplePay";
 
 const emitter = new EventEmitter(ExpoTappayApplePay);
 
-function removeListender(subscription: Subscription) {
+const checkAvailability = (methodName: string) => {
   if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    return;
+    throw new UnavailabilityError("expo-tappay-apple-pay", methodName);
   }
+};
+
+function removeListener(subscription: Subscription): void {
+  checkAvailability("removeListener");
   emitter.removeSubscription(subscription);
 }
 
@@ -20,147 +24,110 @@ function removeListender(subscription: Subscription) {
 function addReceivePrimeListener(
   listener: (payload: ApplePayTypes.OnReceivePrimeEvent) => void,
 ): Subscription {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
+  checkAvailability("addReceivePrimeListener");
   return emitter.addListener("onReceivePrime", listener);
 }
 
 /* Apple Pay Start Listener */
 function addApplePayStartListener(
   listener: (payload: ApplePayTypes.OnApplePayGeneralEvent) => void,
-) {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
+): Subscription {
+  checkAvailability("addApplePayStartListener");
   return emitter.addListener("onApplePayStart", listener);
 }
 
 /* Apple Pay Cancel Listener */
 function addApplePayCancelListener(
   listener: (payload: ApplePayTypes.OnApplePayGeneralEvent) => void,
-) {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
+): Subscription {
+  checkAvailability("addApplePayCancelListener");
   return emitter.addListener("onApplePayCancel", listener);
 }
 
 /* Apple Pay Success Listener */
 function addApplePaySuccessListener(
   listener: (payload: ApplePayTypes.OnApplePayTransactionEvent) => void,
-) {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
+): Subscription {
+  checkAvailability("addApplePaySuccessListener");
   return emitter.addListener("onApplePaySuccess", listener);
 }
 
 /* Apple Pay Failed Listener */
 function addApplePayFailedListener(
   listener: (payload: ApplePayTypes.OnApplePayTransactionEvent) => void,
-) {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
+): Subscription {
+  checkAvailability("addApplePayFailedListener");
   return emitter.addListener("onApplePayFailed", listener);
 }
 
 /* Apple Pay Finished Listener */
 function addApplePayFinishedListener(
   listener: (payload: ApplePayTypes.OnApplePayGeneralEvent) => void,
-) {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
+): Subscription {
+  checkAvailability("addApplePayFinishedListener");
   return emitter.addListener("onApplePayFinished", listener);
 }
 
 function isApplePayAvailable(): boolean {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
+  if (!ExpoTappayApplePay) {
+    return false;
   }
   return ExpoTappayApplePay.isApplePayAvailable();
 }
 
-const setupMerchant = (props: ApplePayTypes.MerchantOptions) => {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
-  ExpoTappayApplePay.setupMerchant(
+async function setupMerchant(
+  props: ApplePayTypes.MerchantOptions,
+): Promise<void> {
+  checkAvailability("setupMerchant");
+  return await ExpoTappayApplePay.setupMerchant(
     props.name,
     props.capabilities,
     props.merchantId,
     props.countryCode,
     props.currencyCode,
   );
-};
+}
 
-const startApplePay = (props: ApplePayTypes.StartPaymentOptions) => {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
-  ExpoTappayApplePay.clearCart();
-  props.cart.forEach((item) => {
-    ExpoTappayApplePay.addToCart(item.name, item.amount);
-  });
-  ExpoTappayApplePay.startPayment();
-};
+async function clearCart(): Promise<void> {
+  checkAvailability("clearCart");
+  return await ExpoTappayApplePay.clearCart();
+}
 
-const showResult = (isSuccess: boolean) => {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
+async function addToCart(item: ApplePayTypes.CartItem): Promise<void> {
+  checkAvailability("addToCart");
+  return await ExpoTappayApplePay.addToCart(item.name, item.amount);
+}
+
+async function startPayment(
+  props: ApplePayTypes.StartPaymentOptions,
+): Promise<void> {
+  checkAvailability("startPayment");
+  await clearCart();
+  for (const item of props.cart) {
+    await addToCart(item);
   }
+  return await ExpoTappayApplePay.startPayment();
+}
+
+function showResult(isSuccess: boolean): void {
+  checkAvailability("showResult");
   ExpoTappayApplePay.showResult(isSuccess);
-};
+}
 
-const showSetup = () => {
-  if (!ExpoTappayApplePay || !ExpoTappayApplePay.isApplePayAvailable()) {
-    throw new UnavailabilityError(
-      "expo-tappay-apple-pay",
-      "addReceivePrimeListener",
-    );
-  }
+function showSetup(): void {
+  checkAvailability("showSetup");
   ExpoTappayApplePay.showSetup();
-};
+}
 
 export default {
   isApplePayAvailable,
   setupMerchant,
-  startApplePay,
+  startPayment,
+  clearCart,
+  addToCart,
   showResult,
   showSetup,
-  removeListender,
+  removeListener,
   addReceivePrimeListener,
   addApplePayStartListener,
   addApplePayCancelListener,

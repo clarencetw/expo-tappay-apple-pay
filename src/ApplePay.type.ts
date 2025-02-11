@@ -17,30 +17,22 @@ export interface StartPaymentOptions {
   cart: CartItem[];
 }
 
-interface OnSuccessReceivePrimeEvent {
+export interface OnSuccessReceivePrimeEvent {
   success: true;
   prime: string;
-  expiryMillis: number;
   totalAmount: number;
   clientIP: string;
 }
 
-interface OnFailureReceivePrimeEvent {
+export interface OnFailureReceivePrimeEvent {
   success: false;
   message: string;
 }
 
-export type OnApplePayGeneralEvent = {
+export interface OnApplePayGeneralEvent {
   status: number;
   message: string;
-};
-
-export type OnApplePayTransactionEvent = {
-  status: number;
-  amount: number;
-  message: string;
-  description: string;
-};
+}
 
 export type OnReceivePrimeEvent =
   | OnSuccessReceivePrimeEvent
